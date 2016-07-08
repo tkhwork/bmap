@@ -1,0 +1,516 @@
+<html>
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <link href="css/common.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=zr7aZmIPekmVhgw7AruuohG51FTw1foD"></script>
+    <script type="text/javascript" src="js/TextIconOverlay.js"></script>
+    <script type="text/javascript" src="js/MakerClusterer.js"></script>
+    <script type="text/javascript" src="js/MarkerManager.js"></script>
+    <script type="text/javascript" src="data/js/luohu-location-data.js"></script>
+    <script type="text/javascript" src="data/js/luohu-station-data.js"></script>
+    <script type="text/javascript" src="data/js/luohu-street-data.js"></script>
+    <script type="text/javascript" src="data/js/polyline-data.js"></script>
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/customoverlay.js"></script>
+
+    <script type="text/javascript" src="http://api.map.baidu.com/library/CurveLine/1.5/src/CurveLine.min.js"></script>
+    <!--加载鼠标绘制工具-->
+    <script type="text/javascript" src="http://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.js"></script>
+    <link rel="stylesheet" href="http://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.css" />
+    <!--加载检索信息窗口-->
+    <script type="text/javascript" src="http://api.map.baidu.com/library/SearchInfoWindow/1.4/src/SearchInfoWindow_min.js"></script>
+    <link rel="stylesheet" href="http://api.map.baidu.com/library/SearchInfoWindow/1.4/src/SearchInfoWindow_min.css" />
+    <title>深圳市罗湖区各街道社区地图</title>
+</head>
+<body>
+<!--<div id="allmap" style="width: 60%;margin-left: auto;margin-right: auto;">1</div>-->
+<!--<div id="allmap">1</div>-->
+<div id="allmap" style="overflow:hidden;zoom:1;position:relative;">
+    <div id="map" style="height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;"></div>
+</div>
+<div id="result">
+    <input type="button" value="获取绘制的覆盖物个数" onclick="alert(overlays.length)"/>
+    <input type="button" value="清除所有覆盖物" onclick="clearAll()"/>
+</div>
+<select onchange="style4();">
+    <option value="midnight">midnight</option>
+    <option value="dark">dark</option>
+    <option value="redalert">redalert</option>
+    <option value="googlelite">googlelite</option>
+    <option value="grassgreen">grassgreen</option>
+    <option value="pink">pink</option>
+    <option value="darkgreen">darkgreen</option>
+    <option value="bluish">bluish</option>
+    <option value="grayscale">grayscale</option>
+    <option value="hardedge">hardedge</option>
+</select>
+</body>
+</html>
+<script type="text/javascript">
+// 百度地图API功能
+var map = new BMap.Map("allmap",{minZoom:14,maxZoom:16,enableMapClick:false});//设置最大最小级别,地图不能点击
+//覆盖物管理器
+var mgr = new BMapLib.MarkerManager(map,{borderPadding: 1,maxZoom: 16,trackMarkers: true});
+//设置街道办、社区的字体显示大小
+var station_font_size=14;
+var street_font_size=30;
+//信息弹窗集合
+var infoWindows = [];
+//地图画线覆盖物。
+var overlays = [];
+//图片大小划分的范围值。
+var range=[10,100];
+//图标尺寸数组，目前提供三种尺寸的图片。
+var imgSizes=[45,55,65];
+//图片默认大小为55像素。
+var imgSize=55;
+var imgSufix=".gif"; //png|gif
+function style1(){
+    map.setMapStyle({
+        styleJson:[
+            {
+                "featureType": "poi",
+                "elementType": "all",
+                "stylers": {
+                    "color": "#ffffff",
+                    "visibility": "off"
+                }
+            },
+            {
+                "featureType": "road",
+                "elementType": "all",
+                "stylers": {
+                    "color": "#ffffff",
+                    "visibility": "off"
+                }
+            }
+        ]
+    });
+}
+/*设置地图显示的样式风格*/
+function style4(){
+    var styleValue = event.target.value;
+    map.setMapStyle({style:styleValue});
+}
+map.enableScrollWheelZoom();
+var top_left_control = new BMap.ScaleControl({anchor: BMAP_ANCHOR_TOP_LEFT});// 左上角，添加比例尺
+var top_left_navigation = new BMap.NavigationControl();  //左上角，添加默认缩放平移控件
+var streets_overlays =null;
+
+//初始化地图，只显示深圳市罗湖区
+function initMap() {
+    //添加点聚合
+    var markers = [];
+    //获取行政区域并绘图
+    var bdary = new BMap.Boundary();
+    bdary.get("深圳罗湖区", function (rs) {       //获取行政区域
+        map.clearOverlays();        //清除地图覆盖物
+        style1();   //设置地图显示样式，去掉poi，road等信息
+        /****************以下覆盖物档住罗湖区域以外的地图******************/
+        overlayMapOthers();
+        /****************以上覆盖物档住罗湖区域以外的地图******************/
+        //5. 给目标行政区划添加边框，其实就是给目标行政区划添加一个没有填充物的遮罩层
+        //TODO
+        var ply = new BMap.Polygon(rs.boundaries[0], { strokeWeight: 3, strokeColor: "#73b48f", fillColor: "" });//#b4c7c6
+        map.addOverlay(ply);
+        map.setViewport(ply.getPath());    //调整视野*/
+
+        //添加覆盖物，标出所有街道
+        appendOfficeStreetOverlay();
+        console.log("zoom:"+map.getZoom());
+        initFirstLevel();
+        //在地图上画出各街道办的线条。
+        addPolyline();
+});
+}
+//初始化地图一级放大效果----->>>街道办数据
+var firstMakers = [];   //一级覆盖物,街道覆盖物
+function initFirstLevel(){
+    console.log("initFirstLevel()。。。");
+    var streets_data = streets;
+    var offset=0.002;   //偏移量
+    /*** TODO 代码写在此处    ***/
+    //1.ajax后台取出街道办数据,把$.getJSON换成$.ajax
+    $.getJSON("data/json/getFirstLevelData.json", function(json){
+        json.data.forEach(function(obj){
+            streets_data.forEach(function(street){
+                //如果街道办名称相匹配,则把后台查出来的舆情数据替换掉js数据文件中的静态舆情数据。
+                if(street.name==obj.name){
+                    //street.msg=obj.msg; //这一步操作可以不需要，因为下面直接添加街道办相关覆盖物。
+                    //结合js数据文件中的经纬度坐标、后台查询出来的舆情数据生成第一级街道办相关的覆盖物。
+                    var pointStr = street.point;
+                    obj.msg.forEach(function(message){
+                        
+                        var pt = createPointArray(offset,pointStr);
+                        /*静态图片*/
+                        var imagepath = getImagePath(message.type,message.count,imgSufix);
+                        var make = createTextIconOverlay(pt[message.type],imagepath,message.count,imgSize);//"img/m"+message.type+".png"         //"img/m1-0.gif"
+                        debugger
+                        /*静态图片*/
+                        /*动态图标*/
+                       /* var imagepath = getImagePath(message.type,message.count,".gif");
+                        var make = createTextIconOverlay(pt[message.type],imagepath,message.count,45);*/
+                        /*动态图标*/
+                        map.addOverlay(make);
+                        firstMakers.push(make); //添加到一级覆盖物集合中，在按级别清除覆盖物时用到。
+                        //注册点击事件。
+                        make.addEventListener("click",function(){
+                            map.setZoom(16);   //点击放大地图
+                            map.setCenter(this._position);  //以当前覆盖物为地图中心点显示
+                        });
+                        //注册鼠标上浮事件。
+                        make.addEventListener("mouseover",function(){
+                            var tipStr = obj.name+message.name+"舆情数："+message.count;
+                            make.V.title=tipStr;                     //简单提示
+                        });
+                    });
+                }
+            });
+        });
+    });
+    /*** TODO 代码写在此处    ***/
+    setupFontSize(street_font_size);
+}
+
+//初始化地图二级放大效果----->>>社区数据
+var secondMakers = [];  //二级覆盖物,社区覆盖物
+function initSecondLevel(){
+    console.log("initSecondLevel()。。。");
+    var stations_data = stations;
+    var offset=0.0005;   //偏移量
+    /*** TODO 代码写在此处    ***/
+    $.getJSON("data/json/getSecondLevelData.json", function(json){
+        json.data.forEach(function(obj){
+            stations_data.forEach(function(station){
+                if(station.name==obj.name){
+                    var pointStr = station.point;
+                    obj.msg.forEach(function(message){
+                        var pt = createPointArray(offset,pointStr);
+                        /*静态图片*/
+                        var imagepath = getImagePath(message.type,message.count,imgSufix);
+                        var make = createTextIconOverlay(pt[message.type],imagepath,message.count,imgSize);
+                        /*静态图片*/
+
+                        /*动态图标*/
+//                        var imagepath = getImagePath(message.type,message.count,".gif");
+//                        var make = createTextIconOverlay(pt[message.type],imagepath,message.count,45);
+                        /*动态图标*/
+                        map.addOverlay(make);
+                        secondMakers.push(make); //添加到二级覆盖物集合中，在按级别清除覆盖物时用到。
+                        //添加社区名称
+                        var stationPoint = station.point.split(",");
+                        var stationName = new ComplexCustomOverlay(new BMap.Point(stationPoint[0], stationPoint[1]), station.name,null);
+                        map.addOverlay(stationName);
+                        secondMakers.push(stationName);
+                        //注册点击事件。
+                        make.addEventListener("click",function(){
+//                            map.setZoom(16);   //点击放大地图
+//                            map.setCenter(this._position);  //以当前覆盖物为地图中心点显示
+                            var tipStr = obj.name+message.name+"舆情数："+message.count;
+                            var infoWindow =createInfoWindow(obj.name,message.name,message.title,message.count);
+                            infoWindows.push(infoWindow);   //添加到信息弹窗集合，方便清除时使用，点击地图时清除
+                            infoWindow.enableCloseOnClick();
+                            map.openInfoWindow(infoWindow, this._position); //开启信息窗口
+                        });
+                        setupFontSize(station_font_size);
+                    });
+                }
+            });
+        });
+    });
+    /*** TODO 代码写在此处    ***/
+}
+//获取覆盖物图片名（分大、中、小三种类型），根据舆情数量来选择图片大小，图片大小与舆情数量成正比。
+function getImagePath(type,count,sufix){  //舆情回复类型(0,1,2)、舆情数量
+    var level = null;
+    debugger
+    if(count>0 && count<range[0]){
+        //最小尺寸图片为45px
+        level=1;
+        imgSize=imgSizes[0];
+    }else if(count>=range[0] && count<=range[1]){
+        //中等尺寸图片为55px
+        level=2;
+        imgSize=imgSizes[1];
+    }else{
+        //最大尺寸图片为65px
+        level=3;
+        imgSize=imgSizes[2];
+    }
+    var imgpath="img/m"+level+"-"+type+sufix;  //e.g. img/m1-0.png
+    return imgpath;
+}
+//创建信息窗口对象
+function createInfoWindow(stationName,msgName,title,count){ //社区名称、消息受理的状态（未受理、已受理、未回复）
+    var opts = {
+//        offset: 50,     //偏移量
+        width : 200,     // 信息窗口宽度
+        height: 100,     // 信息窗口高度
+        enableCloseOnClick: true,
+        enableAutoPan:true,    //是否开启信息窗口打开时地图自动移动（默认开启）
+//        title : stationName , // 信息窗口标题
+        enableMessage:false//设置允许信息窗发送短息
+    }
+    //TODO  消息框测试、演示使用，代码还需改进
+    var content = '<p><span style="font-size: 20px">'+stationName+ msgName+'：'+count+'条</span></br></br>'+title[0]+'</br>'+title[1]+'</br>'+title[2]+'</p>';
+    var infoWindow = new BMap.InfoWindow(content, opts);  // 创建信息窗口对象
+    infoWindow.enableCloseOnClick();
+    return infoWindow;
+}
+//添加覆盖物，标出所有街道
+function appendOfficeStreetOverlay() {
+    street_loc.forEach(function(pt) {
+        //自定义复杂的覆盖物
+        var str = pt.split(",");
+        var txt = str[0], mouseoverTxt = txt +parseInt(Math.random() * 1000,10) + "条舆情消息！" ;
+        var myCompOverlay = new ComplexCustomOverlay(new BMap.Point(str[1], str[2]), str[0],mouseoverTxt);
+        map.addOverlay(myCompOverlay);
+    });
+}
+
+//利用覆盖物档住除了罗湖区以外的其它地图区域
+function overlayMapOthers(){
+    var bdary = new BMap.Boundary();
+    bdary.get("深圳罗湖区", function (rs) {       //获取行政区域
+    var strs = new Array();
+    strs = rs.boundaries[0].split(";");
+    var EN = "";    //行政区划东北段点的集合
+    var NW = ""; //行政区划西北段点的集合
+    var WS = ""; //行政区划西南段点的集合
+    var SE = ""; //行政区划东南段点的集合
+    var pt_e = strs[0]; //行政区划最东边点的经纬度
+    var pt_n = strs[0]; //行政区划最北边点的经纬度
+    var pt_w = strs[0]; //行政区划最西边点的经纬度
+    var pt_s = strs[0]; //行政区划最南边点的经纬度
+    var n1 = ""; //行政区划最东边点在点集合中的索引位置
+    var n2 = ""; //行政区划最北边点在点集合中的索引位置
+    var n3 = ""; //行政区划最西边点在点集合中的索引位置
+    var n4 = ""; //行政区划最南边点在点集合中的索引位置
+    //2.循环行政区划边框点集合找出最东南西北四个点的经纬度以及索引位置
+    for (var n = 0; n < strs.length; n++) {
+        var pt_e_f = parseFloat(pt_e.split(",")[0]);
+        var pt_n_f = parseFloat(pt_n.split(",")[1]);
+        var pt_w_f = parseFloat(pt_w.split(",")[0]);
+        var pt_s_f = parseFloat(pt_s.split(",")[1]);
+        var sPt = new Array();
+        try {
+            sPt = strs[n].split(",");
+            var spt_j = parseFloat(sPt[0]);
+            var spt_w = parseFloat(sPt[1]);
+            if (pt_e_f < spt_j) {   //东
+                pt_e = strs[n];
+                pt_e_f = spt_j;
+                n1 = n;
+            }
+            if (pt_n_f < spt_w) {  //北
+                pt_n_f = spt_w;
+                pt_n = strs[n];
+                n2 = n;
+            }
+            if (pt_w_f > spt_j) {   //西
+                pt_w_f = spt_j;
+                pt_w = strs[n];
+                n3 = n;
+            }
+            if (pt_s_f > spt_w) {   //南
+                pt_s_f = spt_w;
+                pt_s = strs[n];
+                n4 = n;
+            }
+        }
+        catch (err) {
+            alert(err);
+        }
+    }
+    //3.得出东北、西北、西南、东南四段行政区划的边框点的集合
+    if (n1 < n2) {     //第一种情况 最东边点在索引前面
+        for (var o = n1; o <= n2; o++) {
+            EN += strs[o] + ";"
+        }
+        //判断西北
+        if (n2 < n3) {
+            for (var o = n2; o <= n3; o++) {
+                NW += strs[o] + ";"
+            }
+        } else {
+            for (var o = n2; o < strs.length; o++) {
+                NW += strs[o] + ";"
+            }
+            for (var o = 0; o <= n3; o++) {
+                NW += strs[o] + ";"
+            }
+        }
+        for (var o = n3; o <= n4; o++) {
+            WS += strs[o] + ";"
+        }
+        //判断东南
+        if (n4 < n1) {
+            for (var o = n4; o <= n1; o++) {
+                SE += strs[o] + ";"
+            }
+        } else {
+            for (var o = n4; o < strs.length; o++) {
+                SE += strs[o] + ";"
+            }
+            for (var o = 0; o <= n1; o++) {
+                SE += strs[o] + ";"
+            }
+        }
+    }
+    else {   //第二种情况 最东边点在索引后面
+        for (var o = n1; o < strs.length; o++) {
+            EN += strs[o] + ";"
+        }
+        for (var o = 0; o <= n2; o++) {
+            EN += strs[o] + ";"
+        }
+        for (var o = n2; o <= n3; o++) {
+            NW += strs[o] + ";"
+        }
+        for (var o = n3; o <= n4; o++) {
+            WS += strs[o] + ";"
+        }
+        for (var o = n4; o <= n1; o++) {
+            SE += strs[o] + ";"
+        }
+    }
+    //4.自定义外围边框点的集合
+    var E_JW = "170.672126, 39.623555;";            //东
+    var EN_JW = "170.672126, 81.291804;";       //东北角
+    var N_JW = "105.913641, 81.291804;";        //北
+    var NW_JW = "-169.604276,  81.291804;";     //西北角
+    var W_JW = "-169.604276, 38.244136;";       //西
+    var WS_JW = "-169.604276, -68.045308;";     //西南角
+    var S_JW = "114.15563, -68.045308;";            //南
+    var SE_JW = "170.672126, -68.045308 ;";         //东南角
+    //4.添加环形遮罩层
+    var ply1 = new BMap.Polygon(EN + NW + WS + SE + E_JW + SE_JW + S_JW + WS_JW + W_JW + NW_JW + EN_JW + E_JW, { strokeColor: "none", fillColor: "rgb(246,246,246)", strokeOpacity: 1, fillOpacity: 1}); //建立多边形覆盖物
+    map.addOverlay(ply1);  //遮罩物是半透明的，如果需要纯色可以多添加几层*/
+    });
+}
+
+// 编写自定义函数,创建标注(坐标、图标URL、数量、大小)
+function createTextIconOverlay(point,imgUrl,number,pxsize){
+    if(pxsize==null){
+        pxsize=53;
+    }
+    var styled = function(url,size){
+        this.url = url;
+        this.size = size;
+    }
+    //自定义显示图标的样式
+    var styles = [new styled(imgUrl,new BMap.Size(pxsize, pxsize))];    //默认53
+    //创建自定义覆盖物，参数：显示的点，显示标记信息，自定义样式
+    var overlay = new BMapLib.TextIconOverlay(point, number,{styles:styles});//markers聚合物的数组，为了得到一个数值
+//    map.addOverlay(overlay);
+    return overlay;
+}
+
+//根据坐标创建红、黄、蓝三个点。
+function createPointArray(offset,pointStr){  //参数：偏移量、经纬坐标数组
+    var str = pointStr.split(",");
+    var points = [];
+    points.push(new BMap.Point(str[0],str[1]));
+    points.push(new BMap.Point(parseFloat(str[0])+offset+"", str[1]-offset*2+""));
+    points.push(new BMap.Point(parseFloat(str[0])+offset*2+"", parseFloat(str[1])+offset+""));
+    return points;
+}
+//设置字体大小,街道办、社区使用覆盖物文字
+function setupFontSize(size){
+    $("div[name='my-font']").css("font-size",size+"px");
+}
+//向地图中添加线函数
+function addPolyline(){
+//    var plPoints =plPoints;
+    for(var i=0;i<plPoints.length;i++){
+        var json = plPoints[i];
+        var points = [];
+        for(var j=0;j<json.points.length;j++){
+            var p1 = json.points[j].split("|")[0];
+            var p2 = json.points[j].split("|")[1];
+            points.push(new BMap.Point(p1,p2));
+        }
+        var line = new BMap.Polyline(points,{strokeStyle:json.style,strokeWeight:json.weight,strokeColor:json.color,strokeOpacity:json.opacity});
+//        var curve = new BMapLib.CurveLine(points, {strokeColor:"blue", strokeWeight:3, strokeOpacity:0.5}); //创建弧线对象
+//        curve.enableEditing(); //开启编辑功能
+        map.addOverlay(line);
+    }
+}
+
+//添加画图工具栏，用于生成街道办区域地图的坐标集合
+function appendToolBar(){
+    var overlaycomplete = function(e){
+        overlays.push(e.overlay);
+        var points = [];
+        e.overlay.ia.forEach(function(pt){
+            var point = pt.lng+"|"+pt.lat;
+            points.push(point);
+        });
+        console.log(points);
+    };
+    var styleOptions = {
+        strokeColor:"red",    //边线颜色。
+        fillColor:"red",      //填充颜色。当参数为空时，圆形将没有填充效果。
+        strokeWeight: 3,       //边线的宽度，以像素为单位。
+        strokeOpacity: 0.8,	   //边线透明度，取值范围0 - 1。
+        fillOpacity: 0.6,      //填充的透明度，取值范围0 - 1。
+        strokeStyle: 'solid' //边线的样式，solid或dashed。
+    }
+    //实例化鼠标绘制工具
+    var drawingManager = new BMapLib.DrawingManager(map, {
+        isOpen: false, //是否开启绘制模式
+        enableDrawingTool: true, //是否显示工具栏
+        drawingToolOptions: {
+            anchor: BMAP_ANCHOR_TOP_RIGHT, //位置
+            offset: new BMap.Size(5, 5) //偏离值
+        },
+        circleOptions: styleOptions, //圆的样式
+        polylineOptions: styleOptions, //线的样式
+        polygonOptions: styleOptions, //多边形的样式
+        rectangleOptions: styleOptions //矩形的样式
+    });
+    //添加鼠标绘制工具监听事件，用于获取绘制结果
+    drawingManager.addEventListener('overlaycomplete', overlaycomplete);
+}
+function clearAll() {
+    for(var i = 0; i < overlays.length; i++){
+        map.removeOverlay(overlays[i]);
+    }
+    overlays.length = 0
+}
+//main入口
+setTimeout(function(){
+    //1.初始化深圳市罗湖区地图
+    initMap();
+//    appendToolBar();  //添加画图工具栏，用于生成街道办区域地图的坐标集合
+    //2.监听地图大小,当zoom>13时，显示一级覆盖物
+    map.addEventListener("zoomend", function(){
+        console.log("地图缩放至：" + this.getZoom() + "级");
+        //当地图放大到16时，显示二级覆盖物----->>>社区覆盖物
+        switch(map.getZoom())
+        {
+            //14,15显示一级街道覆盖物
+            case 14:
+            case 15:
+                //清除二级覆盖物--->>>社区覆盖物
+                secondMakers.forEach(function(obj){
+                    map.removeOverlay(obj);
+                });
+                initFirstLevel();
+                break;
+            //16显示二级社区覆盖物
+            case 16:
+                //清除一级覆盖物--->>>街道覆盖物
+                firstMakers.forEach(function(obj){
+                    map.removeOverlay(obj);
+                });
+                //显示二级覆盖物。
+                initSecondLevel();
+                break;
+            default:
+        }
+     });
+}, 10);
+</script>

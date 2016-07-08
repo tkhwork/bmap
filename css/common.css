@@ -1,0 +1,71 @@
+body, html {width: 100%;height: 100%;margin:0;font-family:"微软雅黑";}
+#allmap{width:100%;height:100%;}
+/*去除百度地图版权*/
+.anchorBL{
+    display:none;
+}
+
+/*把下面代码加到<head>与</head>之间，信息弹窗样式*/
+<!--
+body{
+    background-color:#f1f1f1;
+}
+body,td{
+    font-family:verdana;
+    cursor:default;
+    font-size:10px;
+}
+a{
+    font-size:10px;
+    color:#006699;
+    line-height:160%;
+    text-decoration:none;
+}
+a:link{
+    font-size:10px;
+    color:#006699;
+    line-height:160%;
+    text-decoration:none;
+}
+a:active{
+    font-size:10px;color:#990000;
+    line-height:160%;
+}
+a:hover{
+    font-size:10px; color:#3366ff;
+    line-height:160%;
+    text-decoration:none;
+}
+li{
+    list-style-type:square;
+    margin:0px;
+    padding:0px;
+    height:15px;
+}
+li span{
+    color:black;
+    cursor:hand;
+    text-decoration:none;
+    border:1px solid #F1F1F1;
+    margin:0px;
+    padding-left:1px;
+    padding-right:0px;
+    padding-top:0px;
+    padding-bottom:0px;
+    position:relative;
+    top:0px;
+    left:-1px;
+}
+.liOver{
+    background-color:#dddddd;
+    border:1px solid #000000;
+}
+.liout{
+    background-color:#f1f1f1;
+    border:1px solid #f1f1f1;
+}
+li span.lidown{
+    background-color:#00ff00;
+    border:1px solid #999999;
+}
+-->
